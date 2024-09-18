@@ -1,0 +1,43 @@
+<div class="register-container">
+  <div class="register-form">
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+      <mat-form-field appearance="fill">
+        <mat-label>Họ và tên</mat-label>
+        <input matInput formControlName="fullname" type="text" placeholder="Nhập fullname" />
+        <mat-error
+          *ngIf="
+            registerForm.controls['fullname'].invalid && registerForm.controls['fullname'].touched
+          "
+        >
+          Họ và tên không được bỏ trống
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>Địa chỉ email</mat-label>
+        <input matInput formControlName="email" type="email" placeholder="Nhập email" />
+        <mat-error
+          *ngIf="registerForm.controls['email'].invalid && registerForm.controls['email'].touched"
+        >
+          Email không hợp lệ
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>Mật khẩu</mat-label>
+        <input matInput formControlName="password" type="password" placeholder="Nhập mật khẩu" />
+        <mat-error
+          *ngIf="
+            registerForm.controls['password'].invalid && registerForm.controls['password'].touched
+          "
+        >
+          Mật khẩu không được bỏ trống
+        </mat-error>
+      </mat-form-field>
+
+      <button mat-raised-button color="primary" type="submit" [disabled]="registerForm.invalid">
+        Đăng ký
+      </button>
+    </form>
+  </div>
+</div>

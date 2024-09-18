@@ -1,0 +1,28 @@
+.login-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+
+  .login-form {
+    background-color: #999;
+    max-width: 600px;
+    padding: 20px;
+  }
+
+  .options {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+  }
+}
+
+mat-form-field {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+button {
+  width: 100%;
+}
