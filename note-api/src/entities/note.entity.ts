@@ -11,7 +11,7 @@ import {
 import { UserEntity } from './user.entity';
 
 @Entity({ name: 'notes' })
-export class PostEntity {
+export class NoteEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -44,5 +44,5 @@ export class PostEntity {
 
   @ManyToOne(() => UserEntity, (user) => user.notes)
   @JoinColumn({ name: 'user_id' })
-  user: UserEntity;
+  userId: UserEntity;
 }

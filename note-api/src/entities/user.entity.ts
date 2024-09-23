@@ -7,7 +7,7 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
 } from 'typeorm';
-import { PostEntity } from './note.entity';
+import { NoteEntity } from './note.entity';
 
 @Entity({ name: 'users' })
 export class UserEntity {
@@ -47,6 +47,6 @@ export class UserEntity {
   @Column({ name: 'profile_picture_url', nullable: true })
   profilePictureURL?: string;
 
-  @OneToMany(() => PostEntity, (note) => note.user)
-  notes: PostEntity[];
+  @OneToMany(() => NoteEntity, (note) => note.userId)
+  notes: NoteEntity[];
 }
