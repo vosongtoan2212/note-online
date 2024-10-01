@@ -4,13 +4,17 @@ import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from '~/user/user.module';
 import { NoteModule } from '~/note/note.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    JwtModule.register({
-      global: true,
-      secret: 'note-online-secret-key-dc22v7q520',
-      signOptions: { expiresIn: '60m' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: { expiresIn: '60m' },
+      }),
+      inject: [ConfigService],
     }),
     UserModule,
     NoteModule,

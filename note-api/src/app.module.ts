@@ -6,19 +6,32 @@ import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { NoteModule } from './note/note.module';
 import { JwtStrategy } from '~/auth/jwt.strategy';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'admin',
-      password: 'admin',
-      database: 'note_online',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
-      logging: true,
+    ConfigModule.forRoot({
+      isGlobal: true, // Làm cho cấu hình có sẵn trong toàn bộ app
+      envFilePath: [
+        './.env.development.local',
+        './.env.development',
+        './.env.local',
+        './.env',
+      ],
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService) => ({
+        type: 'mysql',
+        host: configService.get('DATABASE_HOST'),
+        port: configService.get('DATABASE_PORT'),
+        username: configService.get('DATABASE_USER'),
+        password: configService.get('DATABASE_PASSWORD'),
+        database: configService.get('DATABASE_NAME'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: true,
+      }),
+      inject: [ConfigService],
     }),
     UserModule,
     AuthModule,
