@@ -25,6 +25,12 @@ export class NoteController {
     return await this.noteService.getListNotes(payloadToken);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('trash')
+  async getListNotesInTrash(@Payload() payloadToken: PayloadRO) {
+    return await this.noteService.getListNotesInTrash(payloadToken);
+  }
+
   // Get note by id
   @UseGuards(JwtAuthGuard)
   @Get(':id')

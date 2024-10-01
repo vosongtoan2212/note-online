@@ -22,6 +22,16 @@ export class NoteService {
     });
   }
 
+  async getListNotesInTrash(payloadToken: PayloadRO): Promise<NoteEntity[]> {
+    const note = await this.noteRepository.getListInTrash(payloadToken);
+
+    if (!note) {
+      throw new NotFoundException(`Trash is empty`);
+    }
+
+    return note;
+  }
+
   async getNoteById(id: number, payloadToken: PayloadRO): Promise<NoteEntity> {
     const note = await this.noteRepository.findOne({
       where: {
@@ -40,15 +50,7 @@ export class NoteService {
     id: number,
     payloadToken: PayloadRO,
   ): Promise<NoteEntity> {
-    // Sử dụng QueryBuilder và thêm `withDeleted()` để lấy các bản ghi bị soft delete
-    const note = await this.noteRepository
-      .createQueryBuilder('note')
-      .where('note.id = :id', { id })
-      .andWhere('note.userId = :userId', { userId: payloadToken.sub })
-      .andWhere('note.status = 0')
-      .andWhere('note.deletedAt IS NOT NULL')
-      .withDeleted()
-      .getOne();
+    const note = await this.noteRepository.getOneInTrash(id, payloadToken);
 
     if (!note) {
       throw new NotFoundException(`Note with id ${id} not found in trash`);

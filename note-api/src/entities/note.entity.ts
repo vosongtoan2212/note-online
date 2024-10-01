@@ -42,7 +42,7 @@ export class NoteEntity {
   @Column({ default: 'Draft' })
   status: string;
 
-  @ManyToOne(() => UserEntity, (user) => user.notes)
+  @ManyToOne(() => UserEntity, (user) => user.notes, { nullable: false })
   @JoinColumn({ name: 'user_id' })
   userId: UserEntity;
 }
