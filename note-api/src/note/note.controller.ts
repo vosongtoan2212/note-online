@@ -4,12 +4,12 @@ import {
   Delete,
   Get,
   Param,
+  Request,
+  ParseIntPipe,
   Post,
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { Payload } from '~/base/base.decorator';
-import { PayloadRO } from '~/base/ro/payload.ro';
 import { JwtAuthGuard } from '~/guard/jwt.guard';
 import { CreateNoteDTO } from '~/note/dto/create-note.dto';
 import { UpdateNoteDTO } from '~/note/dto/update-note.dto';
@@ -21,70 +21,61 @@ export class NoteController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  async getAllNotes(@Payload() payloadToken: PayloadRO) {
-    return await this.noteService.getListNotes(payloadToken);
+  async getAllNotes(@Request() req) {
+    return await this.noteService.getListNotes(req);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('trash')
-  async getListNotesInTrash(@Payload() payloadToken: PayloadRO) {
-    return await this.noteService.getListNotesInTrash(payloadToken);
+  async getListNotesInTrash(@Request() req) {
+    return await this.noteService.getListNotesInTrash(req);
   }
 
   // Get note by id
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  async getNoteById(
-    @Param('id') id: number,
-    @Payload() payloadToken: PayloadRO,
-  ) {
-    return await this.noteService.getNoteById(id, payloadToken);
+  async getNoteById(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return await this.noteService.getNoteById(id, req);
   }
 
   // create a new note
   @UseGuards(JwtAuthGuard)
   @Post('create')
-  async createNote(
-    @Body() data: CreateNoteDTO,
-    @Payload() payloadToken: PayloadRO,
-  ) {
-    return await this.noteService.createNote(data, payloadToken);
+  async createNote(@Body() data: CreateNoteDTO, @Request() req) {
+    return await this.noteService.createNote(data, req);
   }
 
   @UseGuards(JwtAuthGuard)
   @Put('update/:id')
   async updateNote(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() data: UpdateNoteDTO,
-    @Payload() payloadToken: PayloadRO,
+    @Request() req,
   ) {
-    return await this.noteService.updateNote(id, data, payloadToken);
+    return await this.noteService.updateNote(id, data, req);
   }
 
   @UseGuards(JwtAuthGuard)
   @Put('trash/:id')
-  async addToTrashNote(
-    @Param('id') id: number,
-    @Payload() payloadToken: PayloadRO,
-  ) {
-    return await this.noteService.addToTrashNote(id, payloadToken);
+  async addToTrashNote(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return await this.noteService.addToTrashNote(id, req);
   }
 
   @UseGuards(JwtAuthGuard)
   @Put('untrash/:id')
   async removeFromTrashNote(
-    @Param('id') id: number,
-    @Payload() payloadToken: PayloadRO,
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req,
   ) {
-    return await this.noteService.removeFromTrashNote(id, payloadToken);
+    return await this.noteService.restoreFromTrash(id, req);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete('delete/:id')
   async deleteNotePermanently(
-    @Param('id') id: number,
-    @Payload() payloadToken: PayloadRO,
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req,
   ) {
-    return await this.noteService.deleteNotePermanently(id, payloadToken);
+    return await this.noteService.deleteNotePermanently(id, req);
   }
 }

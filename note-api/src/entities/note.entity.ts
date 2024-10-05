@@ -39,10 +39,10 @@ export class NoteEntity {
   @DeleteDateColumn({ name: 'deleted_at', type: 'timestamp' })
   deletedAt: Date;
 
-  @Column({ default: 'Draft' })
-  status: string;
+  @Column({ name: 'user_id', type: 'int' })
+  userId: number;
 
   @ManyToOne(() => UserEntity, (user) => user.notes, { nullable: false })
   @JoinColumn({ name: 'user_id' })
-  userId: UserEntity;
+  user: UserEntity;
 }

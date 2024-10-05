@@ -4,7 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { IsNull, Not } from 'typeorm';
 import { PayloadRO } from '~/base/ro/payload.ro';
+import { CustomResponse, formatResponse } from '~/base/utils/response.util';
 import { NoteEntity } from '~/entities/note.entity';
 import { CreateNoteDTO } from '~/note/dto/create-note.dto';
 import { UpdateNoteDTO } from '~/note/dto/update-note.dto';
@@ -14,73 +16,183 @@ import { NoteRepository } from '~/note/note.repository';
 export class NoteService {
   constructor(private noteRepository: NoteRepository) {}
 
-  async getListNotes(payloadToken: PayloadRO): Promise<NoteEntity[]> {
-    return this.noteRepository.find({
-      where: {
-        userId: { id: payloadToken.sub },
-      },
-    });
-  }
-
-  async getListNotesInTrash(payloadToken: PayloadRO): Promise<NoteEntity[]> {
-    const note = await this.noteRepository.getListInTrash(payloadToken);
-
-    if (!note) {
-      throw new NotFoundException(`Trash is empty`);
-    }
-
-    return note;
-  }
-
-  async getNoteById(id: number, payloadToken: PayloadRO): Promise<NoteEntity> {
+  async findOne(id: number, payloadToken: PayloadRO): Promise<NoteEntity> {
     const note = await this.noteRepository.findOne({
       where: {
         id,
-        userId: { id: payloadToken.sub },
+        userId: payloadToken.sub,
       },
     });
 
     if (!note) {
       throw new NotFoundException(`Note with id ${id} not found`);
     }
+
     return note;
   }
 
-  async getNoteInTrashById(
+  async findOneInTrash(
     id: number,
     payloadToken: PayloadRO,
   ): Promise<NoteEntity> {
-    const note = await this.noteRepository.getOneInTrash(id, payloadToken);
+    const note = await this.noteRepository.findOne({
+      where: { id: id, userId: payloadToken.sub, deletedAt: Not(IsNull()) },
+      withDeleted: true,
+    });
 
     if (!note) {
       throw new NotFoundException(`Note with id ${id} not found in trash`);
     }
-
     return note;
   }
 
-  async createNote(
-    data: CreateNoteDTO,
-    payloadToken: PayloadRO,
-  ): Promise<NoteEntity> {
-    const { sub } = payloadToken;
+  async getListNotes(req: any): Promise<CustomResponse> {
+    const payloadToken = req.user;
+    try {
+      const notes = await this.noteRepository.find({
+        where: {
+          userId: payloadToken.sub,
+        },
+      });
+      if (!notes) {
+        throw new NotFoundException(`Note is empty`);
+      }
+      return formatResponse(HttpStatus.OK, 'Notes fetched successfully', notes);
+    } catch (e) {
+      throw new HttpException(
+        {
+          errorCode: 'ERROR.INTERNAL_SERVER_ERROR',
+          errorMessage: 'Internal server error',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getListNotesInTrash(req: any): Promise<CustomResponse> {
+    const payloadToken = req.user;
+
+    try {
+      const notes = await this.noteRepository.find({
+        where: { userId: payloadToken.sub, deletedAt: Not(IsNull()) },
+        withDeleted: true,
+      });
+
+      if (!notes) {
+        throw new NotFoundException(`Trash is empty`);
+      }
+
+      return formatResponse(
+        HttpStatus.OK,
+        'Notes in trash fetched successfully',
+        notes,
+      );
+    } catch (e) {
+      throw new HttpException(
+        {
+          errorCode: 'ERROR.INTERNAL_SERVER_ERROR',
+          errorMessage: 'Internal server error',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getNoteById(id: number, req: any): Promise<CustomResponse> {
+    const payloadToken = req.user;
+    const note = await this.findOne(id, payloadToken);
+    return formatResponse(HttpStatus.OK, 'Note fetched successfully', note);
+  }
+
+  async getNoteInTrashById(id: number, req: any): Promise<CustomResponse> {
+    const payloadToken = req.user;
+    try {
+      const note = await this.findOneInTrash(id, payloadToken);
+      return formatResponse(HttpStatus.OK, 'Notes fetched successfully', note);
+    } catch (e) {
+      throw new HttpException(
+        {
+          errorCode: 'ERROR.INTERNAL_SERVER_ERROR',
+          errorMessage: 'Internal server error',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async createNote(data: CreateNoteDTO, req: any): Promise<CustomResponse> {
+    const payloadToken = req.user;
     const newNote = this.noteRepository.create({
       ...data,
-      userId: { id: sub },
+      userId: payloadToken.sub,
     });
-    return await this.noteRepository.save(newNote);
+    try {
+      await this.noteRepository.save(newNote);
+    } catch (e) {
+      throw new HttpException(
+        {
+          errorCode: 'ERROR.INTERNAL_SERVER_ERROR',
+          errorMessage: 'Internal server error',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+    return formatResponse(HttpStatus.OK, 'Note create successfully', newNote);
   }
 
   async updateNote(
     id: number,
     data: UpdateNoteDTO,
-    payloadToken: PayloadRO,
-  ): Promise<NoteEntity> {
+    req: any,
+  ): Promise<CustomResponse> {
     // Tìm ghi chú theo id và người dùng
-    const note = await this.getNoteById(id, payloadToken);
+    const payloadToken = req.user;
+    let note = await this.findOne(id, payloadToken);
+    note = { ...note, ...data };
+    try {
+      await this.noteRepository.save(note);
+    } catch (e) {
+      throw new HttpException(
+        {
+          errorCode: 'ERROR.INTERNAL_SERVER_ERROR',
+          errorMessage: 'Internal server error',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
 
-    // Cập nhật giá trị cho ghi chú
-    Object.assign(note, data);
+    return formatResponse(HttpStatus.OK, 'Note update successfully', note);
+  }
+
+  async addToTrashNote(id: number, req: any): Promise<CustomResponse> {
+    const payloadToken = req.user;
+    // Tìm ghi chú theo id và người dùng
+    const note = await this.findOne(id, payloadToken);
+
+    try {
+      await this.noteRepository.softRemove(note);
+    } catch (e) {
+      throw new HttpException(
+        {
+          errorCode: 'ERROR.INTERNAL_SERVER_ERROR',
+          errorMessage: 'Internal server error',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return formatResponse(
+      HttpStatus.OK,
+      'Note add to trash successfully',
+      note,
+    );
+  }
+
+  async restoreFromTrash(id: number, req: any): Promise<CustomResponse> {
+    const payloadToken = req.user;
+    // Tìm ghi chú theo id và người dùng
+    const note = await this.findOneInTrash(id, payloadToken);
+    note.deletedAt = null;
 
     try {
       await this.noteRepository.save(note);
@@ -94,73 +206,13 @@ export class NoteService {
       );
     }
 
-    return note;
+    return formatResponse(HttpStatus.OK, 'Note restore successfully', note);
   }
 
-  async addToTrashNote(
-    id: number,
-    payloadToken: PayloadRO,
-  ): Promise<NoteEntity> {
+  async deleteNotePermanently(id: number, req: any): Promise<CustomResponse> {
+    const payloadToken = req.user;
     // Tìm ghi chú theo id và người dùng
-    const note = await this.getNoteById(id, payloadToken);
-
-    const data = {
-      deletedAt: new Date(),
-      status: 0,
-    };
-    // Cập nhật giá trị cho ghi chú
-    Object.assign(note, data);
-
-    try {
-      await this.noteRepository.save(note);
-    } catch (e) {
-      throw new HttpException(
-        {
-          errorCode: 'ERROR.INTERNAL_SERVER_ERROR',
-          errorMessage: 'Internal server error',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    return note;
-  }
-
-  async removeFromTrashNote(
-    id: number,
-    payloadToken: PayloadRO,
-  ): Promise<NoteEntity> {
-    // Tìm ghi chú theo id và người dùng
-    const note = await this.getNoteInTrashById(id, payloadToken);
-
-    const data = {
-      deletedAt: null,
-      status: 1,
-    };
-    // Cập nhật giá trị cho ghi chú
-    Object.assign(note, data);
-
-    try {
-      await this.noteRepository.save(note);
-    } catch (e) {
-      throw new HttpException(
-        {
-          errorCode: 'ERROR.INTERNAL_SERVER_ERROR',
-          errorMessage: 'Internal server error',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    return note;
-  }
-
-  async deleteNotePermanently(
-    id: number,
-    payloadToken: PayloadRO,
-  ): Promise<object> {
-    // Tìm ghi chú theo id và người dùng
-    const note = await this.getNoteInTrashById(id, payloadToken);
+    const note = await this.findOneInTrash(id, payloadToken);
     try {
       await this.noteRepository.remove(note);
     } catch (e) {
@@ -172,6 +224,6 @@ export class NoteService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-    return { message: 'Note deleted' };
+    return formatResponse(HttpStatus.OK, 'Note delete successfully', note);
   }
 }

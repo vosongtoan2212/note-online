@@ -47,6 +47,6 @@ export class UserEntity {
   @Column({ name: 'profile_picture_url', nullable: true })
   profilePictureURL?: string;
 
-  @OneToMany(() => NoteEntity, (note) => note.userId)
+  @OneToMany(() => NoteEntity, (note) => note.user)
   notes: NoteEntity[];
 }
